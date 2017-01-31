@@ -137,22 +137,29 @@ Many parts of this region were created alongside the learnopengl.com tutorials
 
 class Mesh{
 
+	bool update_mesh();
+	vector<GLfloat> newpoints; // array of vertex points
+	vector<GLfloat> newnormals; // array of vertex normals
+	mat4 orientation;
+	vec3 position;
+
 public:
 	Mesh();
 
 	//loading and binding vao and tex
-	bool Mesh::load_mesh(const char* file_name);
+	bool load_mesh(const char* file_name);
 	bool load_texture(const char* file_name, GLuint* tex);
 
 	//whats called from main
 	void init(const char* mesh_file, const char* tex_file, const char* normal_file);
-	void initReflectMap(GLfloat vertices[], int num_vertices, Framebuffer frames[], GLfloat width, GLfloat height);
 	void initCubeMap(GLfloat vertices[], int num_vertices, string texture);
-	void Mesh::loadCubeFace(GLuint textureID, GLenum side, const char* filename);
+	void loadCubeFace(GLuint textureID, GLenum side, const char* filename);
+
 	GLuint VAO[20], tex, norm;
 	int mesh_vertex_count;
 
-
+	void moveObject(vec3 linVel, vec3 angVel, float delta);
+	mat4 star(vec3& a);
 };
 
 Mesh::Mesh(){}
@@ -435,6 +442,103 @@ bool Mesh::load_texture(const char* file_name, GLuint* tex)
 	return true;
 }
 
+bool Mesh::update_mesh()
+{
+	for (int i = 0; i < mesh_vertex_count; i++)
+	{
+		static vector<GLfloat> initPoints = newpoints;
+		vec3 vertice = vec3(initPoints[i * 3], initPoints[i * 3 + 1], initPoints[i * 3 + 2]);
+		vertice = multiply(orientation, vertice) + position;
+		newpoints[i * 3] = vertice.v[0];
+		newpoints[i * 3 + 1] = vertice.v[1];
+		newpoints[i * 3 + 2] = vertice.v[2];
+
+		static vector<GLfloat> initNormals = newnormals;
+		vertice = vec3(initNormals[i * 3], initNormals[i * 3 + 1], initNormals[i * 3 + 2]);
+		vertice = multiply(orientation, vertice) + position;
+		newnormals[i * 3] = vertice.v[0];
+		newnormals[i * 3 + 1] = vertice.v[1];
+		newnormals[i * 3 + 2] = vertice.v[2];
+	}
+
+
+
+	glBindVertexArray(VAO[0]);
+	/* copy mesh data into VBOs */
+	GLuint vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, mesh_vertex_count * 3 * sizeof(GLfloat), newpoints.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(0);
+
+	GLuint vbo2;
+	glGenBuffers(1, &vbo2);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo2);
+	glBufferData(GL_ARRAY_BUFFER, 3 * mesh_vertex_count * sizeof(GLfloat), newnormals.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(1);
+
+	return true;
+}
+
+void Mesh::moveObject(vec3 linVel, vec3 angVel, float delta)
+{
+	mat4 rDot = star(angVel*delta)*orientation;
+	orientation.m[0] += rDot.m[0];
+	orientation.m[1] += rDot.m[1];
+	orientation.m[2] += rDot.m[2];
+	orientation.m[3] = 0;
+
+	orientation.m[4] += rDot.m[4];
+	orientation.m[5] += rDot.m[5];
+	orientation.m[6] += rDot.m[6];
+	orientation.m[7] = 0;
+
+	orientation.m[8] += rDot.m[8];
+	orientation.m[9] += rDot.m[9];
+	orientation.m[10] += rDot.m[10];
+	orientation.m[11] = 0;
+
+	orientation.m[12] += rDot.m[12];
+	orientation.m[13] += rDot.m[13];
+	orientation.m[14] += rDot.m[14];
+	orientation.m[15] = 1;
+
+	//Orthonormalisation
+	vec3 Cx = vec3(orientation.m[0], orientation.m[1], orientation.m[2]) / length(vec3(orientation.m[0], orientation.m[1], orientation.m[2]));
+	vec3 Cz = vec3(orientation.m[8], orientation.m[9], orientation.m[10]);
+	vec3 Cy = cross(Cz, Cx);
+	Cy = Cy / length(Cy);
+	Cz = cross(Cx, Cy);
+	Cz = Cz / length(Cz);
+	orientation.m[0] = Cx.v[0];
+	orientation.m[1] = Cx.v[1];
+	orientation.m[2] = Cx.v[2];
+
+	orientation.m[4] = Cy.v[0];
+	orientation.m[5] = Cy.v[1];
+	orientation.m[6] = Cy.v[2];
+
+	orientation.m[8] = Cz.v[0];
+	orientation.m[9] = Cz.v[1];
+	orientation.m[10] = Cz.v[2];
+
+	position += linVel * delta;
+
+	update_mesh();
+}
+
+mat4 Mesh::star(vec3& a)
+{
+	mat4 star = mat4(
+		0, -a.v[2], a.v[1], 0,
+		a.v[2], 0, -a.v[0], 0,
+		-a.v[1], a.v[0], 0, 0,
+		0, 0, 0, 0
+	);
+	return transpose(star);	//converting matrix into Anton's poxy way of doing things.
+}
 #pragma endregion
 
 #pragma region EULER_CAMERA

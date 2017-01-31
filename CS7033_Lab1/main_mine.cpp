@@ -70,15 +70,15 @@ GLfloat vertices[] = {
 							CAMERA VARIABLES
 ----------------------------------------------------------------------------*/
 
-vec3 startingPos = { 0.0f, 0.0f, -20.0f };
+vec3 startingPos = { 0.0f, 0.0f, 20.0f };
 vec3 startingFront = { 0.0f, 0.0f, 1.0f };
 GLfloat pitCam = 0, yawCam = 0, rolCam = 0, frontCam = 0, sideCam = 0, speed = 1;
 float rotateY = 50.0f, rotateLight = 0.0f;
-EulerCamera cam(startingPos, startingFront, vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f, 0.0f);
+EulerCamera cam(startingPos, startingFront, vec3(0.0f, 1.0f, 0.0f), 0.0f, 0.0f, 0.0f);
 versor quat;
 mat4 rotQuat;
 
-QuatCam qcam(vec3(0.0f, 1.0f, 0.0f), 0.0, vec3(0.0, 0.0, -15.0));
+//QuatCam qcam(vec3(0.0f, 1.0f, 0.0f), 0.0, vec3(0.0, 0.0, -15.0));
 
 /*----------------------------------------------------------------------------
 							OTHER VARIABLES
@@ -129,7 +129,7 @@ void init()
 	signNormal_object.init(SIGN_MESH, NORMAL_TEXTURE);
 	sphere_object.init(SPHERE_MESH);
 	gem_object.init(GEM_MESH);
-	particle_object.init(GEM_MESH);
+	particle_object.init(PARTICLE_MESH);
 }
 
 void display() 
@@ -139,7 +139,6 @@ void display()
 	glViewport(0, 0, width, height);
 		
 	view = look_at(cam.getPosition(), cam.getPosition() + cam.getFront(), cam.getUp());
-	view = qcam.viewMat;
 	proj = perspective(60.0, (float)width / (float)height, 1, 1000.0);
 	glViewport(0, 0, width, height);
 	drawloop(view, proj, 0);
@@ -172,21 +171,36 @@ void updateScene() {
 		cam.movRight(sideCam*speed);
 		cam.changeFront(pitCam, yawCam, rolCam);
 
+		//if (cam.getFront() != cam.getPosition())
+		{
+
+		}
+		print(cam.getFront());
+		print(cam.getPosition());
 
 /**--------------------QuatCam Stuff--------------------**/
 		//Translation
 		vec3 movement = vec3(0.0, 0.0, 0.0);
-		movement.v[0] -= sideCam*speed;
-		movement.v[2] -= frontCam*speed;
 		
+		vec3 angVel = vec3(5.0*yawCam, 5.0*pitCam, 5.0*rolCam);
+
 		//Rotation
-		versor yaw = quat_from_axis_deg(yawCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
-		qcam.rotation = slerp(yaw, qcam.rotation);
-		versor pitch = quat_from_axis_deg(pitCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
-		qcam.rotation = slerp(pitch, qcam.rotation);
-		versor roll = quat_from_axis_deg(rolCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
-		qcam.rotation = slerp(roll, qcam.rotation);
-		qcam.rotationMat = quat_to_mat4(qcam.rotation);
+		//if (yawCam)
+		//{
+		//	versor yaw = quat_from_axis_deg(yawCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
+		//	qcam.rotation = slerp(yaw, qcam.rotation, 0.5);
+		//}
+		//if (pitCam)
+		//{
+		//	versor pitch = quat_from_axis_deg(pitCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
+		//	qcam.rotation = slerp(pitch, qcam.rotation, 0.5);
+		//}
+		//if (rolCam)
+		//{
+		//	versor roll = quat_from_axis_deg(rolCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
+		//	qcam.rotation = slerp(roll, qcam.rotation, 0.5);
+		//}
+		//qcam.rotationMat = quat_to_mat4(qcam.rotation);
 		//qcam.forward = qcam.rotation
 	}	
 }
@@ -369,15 +383,10 @@ void drawloop(mat4 view, mat4 proj, GLuint framebuffer)
 	vec3 Ka = vec3(0.05f, 0.05f, 0.05f); // ambient reflectance
 	float specular_exponent = 0.5f; //specular exponent - size of the specular elements
 
-	model = identity_mat4();
-	drawCubeMap(cubeMapShaderID, cube.tex, view, proj, model, Ld, La, cam, cube, GL_TRIANGLES);
+	drawCubeMap(cubeMapShaderID, cube.tex, view, proj, identity_mat4(), Ld, La, cam, cube, GL_TRIANGLES);
 	
-	model = scale(identity_mat4(), vec3(0.5f, 0.5f, 0.5f));
-	model = translate(model, cam.getPosition());
-	model = scale(identity_mat4(), vec3(0.5f, 0.5f, 0.5f));
-	//model = translate(model, cam.getPosition());	
-	//model = translate(model, vec3(0.0, 0.0, 0.0));
-	drawObject(noTextureShaderID, view, proj, model, light, Ls, La, Ld, Ks, Ka, WHITE, specular_exponent, cam, cube, coneAngle, coneDirection, GL_TRIANGLES);
+
+	drawObject(noTextureShaderID, view, proj, identity_mat4(), light, Ls, La, Ld, Ks, Ka, WHITE, specular_exponent, cam, particle_object, coneAngle, coneDirection, GL_QUADS);
 
 
 }
