@@ -71,14 +71,14 @@ GLfloat vertices[] = {
 ----------------------------------------------------------------------------*/
 
 vec3 startingPos = { 0.0f, 0.0f, 20.0f };
-vec3 startingFront = { 0.0f, 0.0f, 1.0f };
+vec3 startingFront = { 0.0f, 0.0f, -1.0f };
 GLfloat pitCam = 0, yawCam = 0, rolCam = 0, frontCam = 0, sideCam = 0, speed = 1;
 float rotateY = 50.0f, rotateLight = 0.0f;
-EulerCamera cam(startingPos, startingFront, vec3(0.0f, 1.0f, 0.0f), 0.0f, 0.0f, 0.0f);
-versor quat;
-mat4 rotQuat;
+EulerCamera cam(startingPos, 0.0f, 0.0f, 0.0f);
 
-//QuatCam qcam(vec3(0.0f, 1.0f, 0.0f), 0.0, vec3(0.0, 0.0, -15.0));
+QuatCam qcam(vec4(0.0f, 1.0f, 0.0f, 0.0), 0.0, vec4(0.0, 0.0, -15.0, 0.0));
+
+bool qmode = false;
 
 /*----------------------------------------------------------------------------
 							OTHER VARIABLES
@@ -138,7 +138,8 @@ void display()
 	mat4 view;
 	glViewport(0, 0, width, height);
 		
-	view = look_at(cam.getPosition(), cam.getPosition() + cam.getFront(), cam.getUp());
+	//view = look_at(cam.getPosition(), cam.getPosition() + cam.getFront(), cam.getUp());
+	view = qcam.viewMat;
 	proj = perspective(60.0, (float)width / (float)height, 1, 1000.0);
 	glViewport(0, 0, width, height);
 	drawloop(view, proj, 0);
@@ -171,37 +172,76 @@ void updateScene() {
 		cam.movRight(sideCam*speed);
 		cam.changeFront(pitCam, yawCam, rolCam);
 
-		//if (cam.getFront() != cam.getPosition())
-		{
+		qcam.yaw += yawCam;
+		qcam.pitch += pitCam;
+		qcam.roll += rolCam;
 
+		versor q = quat_from_axis_deg(qcam.yaw, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
+		q = quat_from_axis_deg(-qcam.pitch, qcam.right.v[0], qcam.right.v[1], qcam.right.v[2]) * q;
+		q = quat_from_axis_deg(qcam.roll, qcam.front.v[0], qcam.front.v[1], qcam.front.v[2]) * q;
+
+		qcam.heading += yawCam;
+
+		qcam.R = quat_to_mat4(normalise(q));
+
+		qcam.front = qcam.R * vec4(0.0, 0.0, -1.0, 0.0);
+		qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
+		qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
+
+		qcam.cam_pos = qcam.cam_pos + vec3(qcam.front) * frontCam;
+		qcam.cam_pos = qcam.cam_pos + vec3(qcam.right) * sideCam;
+		qcam.T = translate(identity_mat4(), vec3(qcam.cam_pos));
+
+		qcam.viewMat = (qcam.R) * (qcam.T);
+
+		//Orthonormalisation
+		vec3 Cx = vec3(qcam.viewMat.m[0], qcam.viewMat.m[1], qcam.viewMat.m[2]) / length(vec3(qcam.viewMat.m[0], qcam.viewMat.m[1], qcam.viewMat.m[2]));
+		vec3 Cz = vec3(qcam.viewMat.m[8], qcam.viewMat.m[9], qcam.viewMat.m[10]);
+		vec3 Cy = cross(Cz, Cx);
+		Cy = Cy / length(Cy);
+		Cz = cross(Cx, Cy);
+		Cz = Cz / length(Cz);
+		qcam.viewMat.m[0] = Cx.v[0];
+		qcam.viewMat.m[1] = Cx.v[1];
+		qcam.viewMat.m[2] = Cx.v[2];
+
+		qcam.viewMat.m[4] = Cy.v[0];
+		qcam.viewMat.m[5] = Cy.v[1];
+		qcam.viewMat.m[6] = Cy.v[2];
+
+		qcam.viewMat.m[8] = Cz.v[0];
+		qcam.viewMat.m[9] = Cz.v[1];
+		qcam.viewMat.m[10] = Cz.v[2];
+
+		if (!qmode)
+		{
+			string output = "Front: [" + to_string(qcam.getFront().v[0]) + ", " + to_string(qcam.getFront().v[1]) + ", " + to_string(qcam.getFront().v[2]) + "]\n";
+			output += "Position: [" + to_string(qcam.getPosition().v[0]) + ", " + to_string(qcam.getPosition().v[1]) + ", " + to_string(qcam.getPosition().v[2]) + "]\n";
+			output += "Up: [" + to_string(qcam.getUp().v[0]) + ", " + to_string(qcam.getUp().v[1]) + ", " + to_string(qcam.getUp().v[2]) + "]\n";
+			output += "Object Position: [" + to_string(particle_object.position.v[0]) + ", " + to_string(particle_object.position.v[1]) + ", " + to_string(particle_object.position.v[2]) + "]\n";
+			output += "Pitch: " + to_string(qcam.pitch) + "\n";
+			output += "Yaw: " + to_string(qcam.yaw) + "\n";
+			output += "Roll: " + to_string(qcam.roll) + "\n";
+			update_text(textID, output.c_str());
 		}
-		print(cam.getFront());
-		print(cam.getPosition());
+
+		/*if (!qmode)
+		{
+			string output = "Front: [" + to_string(cam.getFront().v[0]) + ", " + to_string(cam.getFront().v[1]) + ", " + to_string(cam.getFront().v[2]) + "]\n";
+			output += "Position: [" + to_string(cam.getPosition().v[0]) + ", " + to_string(cam.getPosition().v[1]) + ", " + to_string(cam.getPosition().v[2]) + "]\n";
+			output += "Up: [" + to_string(cam.getUp().v[0]) + ", " + to_string(cam.getUp().v[1]) + ", " + to_string(cam.getUp().v[2]) + "]\n";
+			output += "Object Position: [" + to_string(particle_object.position.v[0]) + ", " + to_string(particle_object.position.v[1]) + ", " + to_string(particle_object.position.v[2]) + "]\n";
+			output += "Pitch: " + to_string(cam.pitch) + "\n";
+			output += "Yaw: " + to_string(cam.yaw) + "\n";
+			output += "Roll: " + to_string(cam.roll) + "\n";
+			update_text(textID, output.c_str());
+		}*/
 
 /**--------------------QuatCam Stuff--------------------**/
 		//Translation
 		vec3 movement = vec3(0.0, 0.0, 0.0);
 		
 		vec3 angVel = vec3(5.0*yawCam, 5.0*pitCam, 5.0*rolCam);
-
-		//Rotation
-		//if (yawCam)
-		//{
-		//	versor yaw = quat_from_axis_deg(yawCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
-		//	qcam.rotation = slerp(yaw, qcam.rotation, 0.5);
-		//}
-		//if (pitCam)
-		//{
-		//	versor pitch = quat_from_axis_deg(pitCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
-		//	qcam.rotation = slerp(pitch, qcam.rotation, 0.5);
-		//}
-		//if (rolCam)
-		//{
-		//	versor roll = quat_from_axis_deg(rolCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
-		//	qcam.rotation = slerp(roll, qcam.rotation, 0.5);
-		//}
-		//qcam.rotationMat = quat_to_mat4(qcam.rotation);
-		//qcam.forward = qcam.rotation
 	}	
 }
 
@@ -259,6 +299,8 @@ void keypressUp(unsigned char key, int x, int y)
 		rolCam = 0;
 	if ((key == 'e') || (key == 'E'))
 		rolCam = 0;
+	if (key == ' ')
+		qmode = !qmode;
 }
 
 void specialKeypress(int key, int x, int y) 
@@ -348,13 +390,9 @@ int main(int argc, char** argv) {
 	}
 
 	init();
-	textID = add_text(
-		"Stuff here",
+	textID = add_text("Stuff here",
 		-0.9, 0.8, fontSize, 1.0f, 1.0f, 1.0f, 1.0f);
 	
-	quat = quat_from_axis_deg(0.0, 0.0, 1.0, 0.0);
-
-	rotQuat = quat_to_mat4(quat);
 	glutMainLoop();
 	return 0;
 }
@@ -384,9 +422,5 @@ void drawloop(mat4 view, mat4 proj, GLuint framebuffer)
 	float specular_exponent = 0.5f; //specular exponent - size of the specular elements
 
 	drawCubeMap(cubeMapShaderID, cube.tex, view, proj, identity_mat4(), Ld, La, cam, cube, GL_TRIANGLES);
-	
-
 	drawObject(noTextureShaderID, view, proj, identity_mat4(), light, Ls, La, Ld, Ks, Ka, WHITE, specular_exponent, cam, particle_object, coneAngle, coneDirection, GL_QUADS);
-
-
 }

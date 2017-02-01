@@ -141,7 +141,7 @@ class Mesh{
 	vector<GLfloat> newpoints; // array of vertex points
 	vector<GLfloat> newnormals; // array of vertex normals
 	mat4 orientation;
-	vec3 position;
+
 
 public:
 	Mesh();
@@ -160,6 +160,7 @@ public:
 
 	void moveObject(vec3 linVel, vec3 angVel, float delta);
 	mat4 star(vec3& a);
+	vec3 position;
 };
 
 Mesh::Mesh(){}
@@ -571,9 +572,10 @@ FAQ
 class EulerCamera{
 
 public:
-	EulerCamera(vec3 pos, vec3 f, vec3 u, GLfloat y, GLfloat p, GLfloat r);
+	EulerCamera(vec3 pos, GLfloat y, GLfloat p, GLfloat r);
 	void setSensitivity(GLfloat value);
 	inline void changeFront(GLfloat pi, GLfloat ya, GLfloat ro);
+	//inline void changeLocalFront(GLfloat pi, GLfloat ya, GLfloat ro);
 	void movForward(GLfloat value);
 	void movRight(GLfloat value);
 	void setPosition(vec3 value);
@@ -584,25 +586,35 @@ public:
 	void move(GLfloat value);
 	void jump(bool& jumping);
 	GLuint cam_buffer;
+
+	mat4 rot = mat4();
+	GLfloat yaw, pitch, roll;
 private:
-	vec3 position, front, up;
-	GLfloat yaw, pitch, roll, sensitivity, degrees;
+	vec3 position, front, up, right;
+	GLfloat sensitivity, degrees;
+
+	void changeFront();
+
+	GLfloat initYaw, initPitch, initRoll;
 };
 
-EulerCamera::EulerCamera(vec3 pos, vec3 f, vec3 u, GLfloat y, GLfloat p, GLfloat r)
+EulerCamera::EulerCamera(vec3 pos, GLfloat y, GLfloat p, GLfloat r)
 {
 	position = pos;
-	front = f;
-	up = u;
+	front = vec3(0.0, 0.0, 0.0);
+	right = vec3(0.0, 0.0, 0.0);
+	changeFront();
 	yaw = y;
 	pitch = p;
 	roll = r;
 	degrees = 0;
 }
 inline void EulerCamera::changeFront(GLfloat pi, GLfloat ya, GLfloat ro){
+
 	pi *= sensitivity;
 	ya *= sensitivity;
 	ro *= sensitivity;
+
 	pitch += (GLfloat)pi;
 	yaw += (GLfloat)ya;
 	roll += (GLfloat)ro;
@@ -614,28 +626,51 @@ inline void EulerCamera::changeFront(GLfloat pi, GLfloat ya, GLfloat ro){
 		yaw = 0;
 	else if (yaw < 0)
 		yaw = 360;
+
+	changeFront();
+
+}
+
+/*inline void EulerCamera::changeLocalFront(GLfloat pi, GLfloat ya, GLfloat ro)
+{
+	pi *= sensitivity;
+	ya *= sensitivity;
+	ro *= sensitivity;
+
+	rot = rotate_x_deg(identity_mat4(), -ro);
+	rot = rotate_y_deg(rot, ya);
+	rot = rotate_z_deg(rot, ro);
+	vec3 f = multiply(rot, front);
+	//get direction to look at and normalise it to make it a unit vector
+	front = normalise(f);
+
+
+	right = multiply(rot, vec3(1.0, 0.0, 0.0));
+	vec3 u = cross(right, front);
+	up = normalise(u);
+}*/
+
+inline void EulerCamera::changeFront()
+{
 	GLfloat rpitch = pitch * GLfloat(ONE_DEG_IN_RAD);
 	GLfloat ryaw = yaw  * GLfloat(ONE_DEG_IN_RAD);
 	GLfloat rroll = roll * GLfloat(ONE_DEG_IN_RAD);
 	GLfloat ninety = 90 * GLfloat(ONE_DEG_IN_RAD);
 
-	vec3 f;
-	f.v[0] = cos(rpitch) * cos(ryaw);// +cos(rroll);
-	f.v[1] = sin(rpitch);// +sin(rroll);
-	f.v[2] = cos(rpitch) * sin(ryaw);
+
+	rot = rotate_x_deg(identity_mat4(), -pitch);
+	rot = rotate_y_deg(rot, yaw);
+	rot = rotate_z_deg(rot, roll);
+	vec3 f = multiply(rot, vec3(0.0, 0.0, -1.0));
 	//get direction to look at and normalise it to make it a unit vector
 	front = normalise(f);
-	vec3 right = vec3(
-						cos(ryaw + ninety),
-						0,
-						sin(ryaw + ninety));
 
+
+	right = multiply(rot, vec3(1.0, 0.0, 0.0));
 	vec3 u = cross(right, front);
 	up = normalise(u);
 }
-void EulerCamera::movForward(GLfloat value){ 
-	position += front * value / 10.0f;
-}
+void EulerCamera::movForward(GLfloat value){ position += front * value / 10.0f;}
 void EulerCamera::movRight(GLfloat value){ position += normalise(cross(front, up))*(value / 10.0f); }
 void EulerCamera::move(GLfloat value){ position += vec3(front.v[0] * value / 10.0f, 0.0f, front.v[2] * value / 10.0f); }
 void EulerCamera::setPosition(vec3 value){ position = value; }
@@ -669,28 +704,35 @@ void EulerCamera::jump(bool& jumping){
 class QuatCam {
 public:
 	GLfloat heading, panSpeed = 100.0f, movSpeed = 5.0f;
-	vec3 up = vec3(0.0, 1.0, 0.0), right = vec3(1.0, 0.0, 0.0), front = vec3(0.0, 0.0, -1.0);
+	vec4 up = vec4(0.0, 1.0, 0.0, 0.0), right = vec4(1.0, 0.0, 0.0, 0.0), front = vec4(0.0, 0.0, -1.0, 0.0);
 	versor rotation;
-	mat4 translationMat;
-	mat4 rotationMat;
+	mat4 T;
+	mat4 R;
 	mat4 viewMat;
+	vec3 cam_pos;
+	GLfloat yaw = 0.0f, pitch = 0.0f, roll = 0.0f;
 
-	QuatCam(vec3 u, GLfloat h, vec3 p)
+	QuatCam(vec4 u, GLfloat heading, vec4 position)
 	{
-		up = u;
-		heading = -h;
-		//vec3 position = vec3(0.0, 0.0, 0.0) - p;
-		//front = normalise(p);
-		translationMat = translate(identity_mat4(), p);
-		right = cross(up, front);
+		cam_pos = position;
+		T = translate(identity_mat4(), vec3(-position.v[0], -position.v[1], -position.v[2]));
+		R = rotate_y_deg(identity_mat4(), -heading);
+		viewMat = R * T;
+	}
 
-		float rad = heading * ONE_DEG_IN_RAD;
-		rotation.q[0] = cosf(rad/2);
-		rotation.q[1] = sinf(rad / 2) * up.v[0];
-		rotation.q[2] = sinf(rad / 2) * up.v[1];
-		rotation.q[3] = sinf(rad / 2) * up.v[2];
+	vec3 getUp()
+	{
+		return vec3(up.v[0], up.v[1], up.v[2]);
+	}
 
-		viewMat = quat_to_mat4(rotation)*translationMat;
+	vec3 getFront()
+	{
+		return vec3(front.v[0], front.v[1], front.v[2]);
+	}
+
+	vec3 getPosition()
+	{
+		return cam_pos;
 	}
 };
 #pragma endregion
