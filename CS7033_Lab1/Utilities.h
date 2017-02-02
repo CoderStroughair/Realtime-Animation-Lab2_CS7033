@@ -35,14 +35,6 @@ using namespace std;
 #define CUBEMAP_BACK	"-negz.png"
 
 #define TEXTURE_FOLDER "../Textures/"
-/*
-#define CUBEMAP_RIGHT	"../Textures/posx.jpg"
-#define CUBEMAP_LEFT	"../Textures/negx.jpg"
-#define CUBEMAP_TOP		"../Textures/posy.jpg"
-#define CUBEMAP_BOT		"../Textures/negy.jpg"
-#define CUBEMAP_FRONT	"../Textures/posz.jpg"
-#define CUBEMAP_BACK	"../Textures/negz.jpg"
-*/
 
 #pragma region FRAMEBUFFER
 
@@ -140,7 +132,7 @@ class Mesh{
 	bool update_mesh();
 	vector<GLfloat> newpoints; // array of vertex points
 	vector<GLfloat> newnormals; // array of vertex normals
-	mat4 orientation;
+	mat4 orientation = identity_mat4();
 
 
 public:
@@ -284,6 +276,9 @@ bool Mesh::load_mesh(const char* file_name)
 				points[i * 3] = (GLfloat)vp->x;
 				points[i * 3 + 1] = (GLfloat)vp->y;
 				points[i * 3 + 2] = (GLfloat)vp->z;
+				newpoints.push_back(points[i * 3]);
+				newpoints.push_back(points[i * 3 + 1]);
+				newpoints.push_back(points[i * 3 + 2]);
 			}
 		}
 		if (mesh->HasNormals())
@@ -295,6 +290,9 @@ bool Mesh::load_mesh(const char* file_name)
 				normals[i * 3] = (GLfloat)vn->x;
 				normals[i * 3 + 1] = (GLfloat)vn->y;
 				normals[i * 3 + 2] = (GLfloat)vn->z;
+				newnormals.push_back(normals[i * 3]);
+				newnormals.push_back(normals[i * 3 + 1]);
+				newnormals.push_back(normals[i * 3 + 2]);
 			}
 		}
 		if (mesh->HasTextureCoords(0))
@@ -443,46 +441,6 @@ bool Mesh::load_texture(const char* file_name, GLuint* tex)
 	return true;
 }
 
-bool Mesh::update_mesh()
-{
-	for (int i = 0; i < mesh_vertex_count; i++)
-	{
-		static vector<GLfloat> initPoints = newpoints;
-		vec3 vertice = vec3(initPoints[i * 3], initPoints[i * 3 + 1], initPoints[i * 3 + 2]);
-		vertice = multiply(orientation, vertice) + position;
-		newpoints[i * 3] = vertice.v[0];
-		newpoints[i * 3 + 1] = vertice.v[1];
-		newpoints[i * 3 + 2] = vertice.v[2];
-
-		static vector<GLfloat> initNormals = newnormals;
-		vertice = vec3(initNormals[i * 3], initNormals[i * 3 + 1], initNormals[i * 3 + 2]);
-		vertice = multiply(orientation, vertice) + position;
-		newnormals[i * 3] = vertice.v[0];
-		newnormals[i * 3 + 1] = vertice.v[1];
-		newnormals[i * 3 + 2] = vertice.v[2];
-	}
-
-
-
-	glBindVertexArray(VAO[0]);
-	/* copy mesh data into VBOs */
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, mesh_vertex_count * 3 * sizeof(GLfloat), newpoints.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(0);
-
-	GLuint vbo2;
-	glGenBuffers(1, &vbo2);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo2);
-	glBufferData(GL_ARRAY_BUFFER, 3 * mesh_vertex_count * sizeof(GLfloat), newnormals.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(1);
-
-	return true;
-}
-
 void Mesh::moveObject(vec3 linVel, vec3 angVel, float delta)
 {
 	mat4 rDot = star(angVel*delta)*orientation;
@@ -530,6 +488,46 @@ void Mesh::moveObject(vec3 linVel, vec3 angVel, float delta)
 	update_mesh();
 }
 
+bool Mesh::update_mesh()
+{
+	for (int i = 0; i < mesh_vertex_count; i++)
+	{
+		static vector<GLfloat> initPoints = newpoints;
+		vec3 vertice = vec3(initPoints[i * 3], initPoints[i * 3 + 1], initPoints[i * 3 + 2]);
+		vertice = multiply(orientation, vertice) + position;
+		newpoints[i * 3] = vertice.v[0];
+		newpoints[i * 3 + 1] = vertice.v[1];
+		newpoints[i * 3 + 2] = vertice.v[2];
+
+		static vector<GLfloat> initNormals = newnormals;
+		vertice = vec3(initNormals[i * 3], initNormals[i * 3 + 1], initNormals[i * 3 + 2]);
+		vertice = multiply(orientation, vertice) + position;
+		newnormals[i * 3] = vertice.v[0];
+		newnormals[i * 3 + 1] = vertice.v[1];
+		newnormals[i * 3 + 2] = vertice.v[2];
+	}
+
+
+
+	glBindVertexArray(VAO[0]);
+	/* copy mesh data into VBOs */
+	GLuint vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, mesh_vertex_count * 3 * sizeof(GLfloat), newpoints.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(0);
+
+	GLuint vbo2;
+	glGenBuffers(1, &vbo2);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo2);
+	glBufferData(GL_ARRAY_BUFFER, 3 * mesh_vertex_count * sizeof(GLfloat), newnormals.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(1);
+
+	return true;
+}
+
 mat4 Mesh::star(vec3& a)
 {
 	mat4 star = mat4(
@@ -540,6 +538,7 @@ mat4 Mesh::star(vec3& a)
 	);
 	return transpose(star);	//converting matrix into Anton's poxy way of doing things.
 }
+
 #pragma endregion
 
 #pragma region EULER_CAMERA
@@ -733,6 +732,50 @@ public:
 	vec3 getPosition()
 	{
 		return cam_pos;
+	}
+
+	vec3 move(GLfloat _yaw, GLfloat _pitch, GLfloat _roll, GLfloat frontCam, GLfloat sideCam)
+	{
+		yaw += _yaw;
+		pitch += _pitch;
+		roll += _roll;
+
+		versor q = quat_from_axis_deg(yaw, up.v[0], up.v[1], up.v[2]);
+		q = quat_from_axis_deg(-pitch, right.v[0], right.v[1], right.v[2]) * q;
+		q = quat_from_axis_deg(roll, front.v[0], front.v[1], front.v[2]) * q;
+
+		heading += _yaw;
+
+		R = quat_to_mat4(normalise(q));
+
+		front = R * vec4(0.0, 0.0, -1.0, 0.0);
+		right = R * vec4(1.0, 0.0, 0.0, 0.0);
+		up = R * vec4(0.0, 1.0, 0.0, 0.0);
+
+		cam_pos = cam_pos + vec3(front) * frontCam;
+		cam_pos = cam_pos + vec3(right) * sideCam;
+		T = translate(identity_mat4(), vec3(cam_pos));
+
+		viewMat = (R) * (T);
+
+		//Orthonormalisation
+		vec3 Cx = vec3(viewMat.m[0], viewMat.m[1], viewMat.m[2]) / length(vec3(viewMat.m[0], viewMat.m[1], viewMat.m[2]));
+		vec3 Cz = vec3(viewMat.m[8], viewMat.m[9], viewMat.m[10]);
+		vec3 Cy = cross(Cz, Cx);
+		Cy = Cy / length(Cy);
+		Cz = cross(Cx, Cy);
+		Cz = Cz / length(Cz);
+		viewMat.m[0] = Cx.v[0];
+		viewMat.m[1] = Cx.v[1];
+		viewMat.m[2] = Cx.v[2];
+
+		viewMat.m[4] = Cy.v[0];
+		viewMat.m[5] = Cy.v[1];
+		viewMat.m[6] = Cy.v[2];
+
+		viewMat.m[8] = Cz.v[0];
+		viewMat.m[9] = Cz.v[1];
+		viewMat.m[10] = Cz.v[2];
 	}
 };
 #pragma endregion

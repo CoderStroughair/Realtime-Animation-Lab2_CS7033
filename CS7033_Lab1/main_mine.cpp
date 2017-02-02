@@ -80,6 +80,8 @@ QuatCam qcam(vec4(0.0f, 1.0f, 0.0f, 0.0), 0.0, vec4(0.0, 0.0, -15.0, 0.0));
 
 bool qmode = false;
 
+GLfloat objYaw = 0, objPit = 0, objRol = 0;
+
 /*----------------------------------------------------------------------------
 							OTHER VARIABLES
 ----------------------------------------------------------------------------*/
@@ -129,7 +131,7 @@ void init()
 	signNormal_object.init(SIGN_MESH, NORMAL_TEXTURE);
 	sphere_object.init(SPHERE_MESH);
 	gem_object.init(GEM_MESH);
-	particle_object.init(PARTICLE_MESH);
+	particle_object.init(GEM_MESH);
 }
 
 void display() 
@@ -184,7 +186,7 @@ void updateScene() {
 
 		qcam.R = quat_to_mat4(normalise(q));
 
-		qcam.front = qcam.R * vec4(0.0, 0.0, -1.0, 0.0);
+		qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
 		qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
 		qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
 
@@ -213,9 +215,9 @@ void updateScene() {
 		qcam.viewMat.m[9] = Cz.v[1];
 		qcam.viewMat.m[10] = Cz.v[2];
 
-		if (!qmode)
+		if (qmode)
 		{
-			string output = "Front: [" + to_string(qcam.getFront().v[0]) + ", " + to_string(qcam.getFront().v[1]) + ", " + to_string(qcam.getFront().v[2]) + "]\n";
+			string output = "QUAT_MODE: Front: [" + to_string(qcam.getFront().v[0]) + ", " + to_string(qcam.getFront().v[1]) + ", " + to_string(qcam.getFront().v[2]) + "]\n";
 			output += "Position: [" + to_string(qcam.getPosition().v[0]) + ", " + to_string(qcam.getPosition().v[1]) + ", " + to_string(qcam.getPosition().v[2]) + "]\n";
 			output += "Up: [" + to_string(qcam.getUp().v[0]) + ", " + to_string(qcam.getUp().v[1]) + ", " + to_string(qcam.getUp().v[2]) + "]\n";
 			output += "Object Position: [" + to_string(particle_object.position.v[0]) + ", " + to_string(particle_object.position.v[1]) + ", " + to_string(particle_object.position.v[2]) + "]\n";
@@ -225,9 +227,9 @@ void updateScene() {
 			update_text(textID, output.c_str());
 		}
 
-		/*if (!qmode)
+		else
 		{
-			string output = "Front: [" + to_string(cam.getFront().v[0]) + ", " + to_string(cam.getFront().v[1]) + ", " + to_string(cam.getFront().v[2]) + "]\n";
+			string output = "EULER_MODE: Front: [" + to_string(cam.getFront().v[0]) + ", " + to_string(cam.getFront().v[1]) + ", " + to_string(cam.getFront().v[2]) + "]\n";
 			output += "Position: [" + to_string(cam.getPosition().v[0]) + ", " + to_string(cam.getPosition().v[1]) + ", " + to_string(cam.getPosition().v[2]) + "]\n";
 			output += "Up: [" + to_string(cam.getUp().v[0]) + ", " + to_string(cam.getUp().v[1]) + ", " + to_string(cam.getUp().v[2]) + "]\n";
 			output += "Object Position: [" + to_string(particle_object.position.v[0]) + ", " + to_string(particle_object.position.v[1]) + ", " + to_string(particle_object.position.v[2]) + "]\n";
@@ -235,7 +237,9 @@ void updateScene() {
 			output += "Yaw: " + to_string(cam.yaw) + "\n";
 			output += "Roll: " + to_string(cam.roll) + "\n";
 			update_text(textID, output.c_str());
-		}*/
+		}
+
+		particle_object.moveObject(vec3(0.0, 0.0, 0.0), vec3(objPit*10.0f, objYaw*10.0f, objRol*10.0f), delta);
 
 /**--------------------QuatCam Stuff--------------------**/
 		//Translation
@@ -253,7 +257,8 @@ void keypress(unsigned char key, int x, int y)
 	{
 		exit(0);
 	}
-	else if (key == 'w' || key == 'W')
+
+	if (key == 'w' || key == 'W')
 	{
 		frontCam = 1;
 		printf("Moving Forward\n");
@@ -263,6 +268,7 @@ void keypress(unsigned char key, int x, int y)
 		frontCam = -1;
 		printf("Moving Backward\n");
 	}
+
 	if ((key == 'a') || (key == 'A'))
 	{
 		sideCam = -1;
@@ -273,6 +279,7 @@ void keypress(unsigned char key, int x, int y)
 		sideCam = 1;
 		printf("Moving Right\n");
 	}
+
 	if ((key == 'q') || (key == 'Q'))
 	{
 		rolCam = -1;
@@ -282,6 +289,33 @@ void keypress(unsigned char key, int x, int y)
 	{
 		rolCam = 1;
 		printf("Spinning Positive Roll\n");
+	}
+
+	if ((key == 'r') || (key == 'R'))
+	{
+		objPit = 1;
+	}
+	else if ((key == 'f') || (key == 'F'))
+	{
+		objPit = -1;
+	}
+
+	if ((key == 't') || (key == 'T'))
+	{
+		objYaw = 1;
+	}
+	else if ((key == 'g') || (key == 'G'))
+	{
+		objYaw = -1;
+	}
+
+	if ((key == 'y') || (key == 'Y'))
+	{
+		objRol = 1;
+	}
+	else if ((key == 'h') || (key == 'H'))
+	{
+		objRol = -1;
 	}
 }
 
@@ -301,6 +335,21 @@ void keypressUp(unsigned char key, int x, int y)
 		rolCam = 0;
 	if (key == ' ')
 		qmode = !qmode;
+
+	if ((key == 'r') || (key == 'R') || (key == 'f') || (key == 'F'))
+	{
+		objPit = 0;
+	}
+
+	if ((key == 't') || (key == 'T') || (key == 'g') || (key == 'G'))
+	{
+		objYaw = 0;
+	}
+
+	if ((key == 'y') || (key == 'Y') || (key == 'h') || (key == 'H'))
+	{
+		objRol = 0;
+	}
 }
 
 void specialKeypress(int key, int x, int y) 
@@ -422,5 +471,5 @@ void drawloop(mat4 view, mat4 proj, GLuint framebuffer)
 	float specular_exponent = 0.5f; //specular exponent - size of the specular elements
 
 	drawCubeMap(cubeMapShaderID, cube.tex, view, proj, identity_mat4(), Ld, La, cam, cube, GL_TRIANGLES);
-	drawObject(noTextureShaderID, view, proj, identity_mat4(), light, Ls, La, Ld, Ks, Ka, WHITE, specular_exponent, cam, particle_object, coneAngle, coneDirection, GL_QUADS);
+	drawObject(noTextureShaderID, view, proj, identity_mat4(), light, Ls, La, Ld, Ks, Ka, WHITE, specular_exponent, cam, particle_object, coneAngle, coneDirection, GL_TRIANGLES);
 }
