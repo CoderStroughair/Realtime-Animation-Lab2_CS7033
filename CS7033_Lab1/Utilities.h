@@ -710,13 +710,31 @@ public:
 	mat4 viewMat;
 	vec3 cam_pos;
 	GLfloat yaw = 0.0f, pitch = 0.0f, roll = 0.0f;
+	vec3 initPos;
 
 	QuatCam(vec4 u, GLfloat heading, vec4 position)
 	{
 		cam_pos = position;
+		initPos = position;
 		T = translate(identity_mat4(), vec3(-position.v[0], -position.v[1], -position.v[2]));
-		R = rotate_y_deg(identity_mat4(), -heading);
+		rotation = quat_from_axis_deg(-heading, front.v[0], front.v[1], front.v[2]);
+		R = quat_to_mat4(rotation);
 		viewMat = R * T;
+	}
+
+	void reset()
+	{
+		up = vec4(0.0, 1.0, 0.0, 0.0);
+		right = vec4(1.0, 0.0, 0.0, 0.0);
+		front = vec4(0.0, 0.0, -1.0, 0.0);
+		cam_pos = initPos;
+		T = translate(identity_mat4(), vec3(-cam_pos.v[0], -cam_pos.v[1], -cam_pos.v[2]));
+		rotation = quat_from_axis_deg(-0.0, front.v[0], front.v[1], front.v[2]);
+		R = quat_to_mat4(rotation);
+		viewMat = R * T;
+		yaw = 0.0f;
+		pitch = 0.0f;
+		roll = 0.0f;
 	}
 
 	vec3 getUp()

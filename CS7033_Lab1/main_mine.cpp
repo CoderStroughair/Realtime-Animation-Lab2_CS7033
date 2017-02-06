@@ -140,8 +140,10 @@ void display()
 	mat4 view;
 	glViewport(0, 0, width, height);
 		
-	//view = look_at(cam.getPosition(), cam.getPosition() + cam.getFront(), cam.getUp());
-	view = qcam.viewMat;
+	if(!qmode)
+		view = look_at(cam.getPosition(), cam.getPosition() + cam.getFront(), cam.getUp());
+	else
+		view = qcam.viewMat;
 	proj = perspective(60.0, (float)width / (float)height, 1, 1000.0);
 	glViewport(0, 0, width, height);
 	drawloop(view, proj, 0);
@@ -177,14 +179,51 @@ void updateScene() {
 		qcam.yaw += yawCam;
 		qcam.pitch += pitCam;
 		qcam.roll += rolCam;
-
-		versor q = quat_from_axis_deg(qcam.yaw, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
-		q = quat_from_axis_deg(-qcam.pitch, qcam.right.v[0], qcam.right.v[1], qcam.right.v[2]) * q;
-		q = quat_from_axis_deg(qcam.roll, qcam.front.v[0], qcam.front.v[1], qcam.front.v[2]) * q;
-
 		qcam.heading += yawCam;
 
-		qcam.R = quat_to_mat4(normalise(q));
+		//versor q = quat_from_axis_deg(qcam.yaw, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
+		//qcam.R = quat_to_mat4(normalise(q));
+
+		//qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
+		//qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
+		//qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
+
+		//q = quat_from_axis_deg(-qcam.pitch, qcam.right.v[0], qcam.right.v[1], qcam.right.v[2]) * q;
+		//qcam.R = quat_to_mat4(normalise(q));
+
+		//qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
+		//qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
+		//qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
+
+		//q = quat_from_axis_deg(qcam.roll, qcam.front.v[0], qcam.front.v[1], qcam.front.v[2]) * q;
+		//qcam.R = quat_to_mat4(normalise(q));
+
+		//qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
+		//qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
+		//qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
+
+		//qcam.cam_pos = qcam.cam_pos + vec3(qcam.front) * frontCam;
+		//qcam.cam_pos = qcam.cam_pos + vec3(qcam.right) * sideCam;
+		//qcam.T = translate(identity_mat4(), vec3(qcam.cam_pos));
+
+		//qcam.viewMat = (qcam.R) * (qcam.T);
+
+		qcam.rotation = quat_from_axis_deg(yawCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]) * qcam.rotation;
+		qcam.R = quat_to_mat4(normalise(qcam.rotation));
+
+		qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
+		qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
+		qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
+
+		qcam.rotation = quat_from_axis_deg(-pitCam, qcam.right.v[0], qcam.right.v[1], qcam.right.v[2]) * qcam.rotation;
+		qcam.R = quat_to_mat4(normalise(qcam.rotation));
+
+		qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
+		qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
+		qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
+
+		qcam.rotation = quat_from_axis_deg(rolCam, qcam.front.v[0], qcam.front.v[1], qcam.front.v[2]) * qcam.rotation;
+		qcam.R = quat_to_mat4(normalise(qcam.rotation));
 
 		qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
 		qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
@@ -375,6 +414,10 @@ void specialKeypress(int key, int x, int y)
 	case (GLUT_KEY_DOWN):
 		printf("Spinning Negative Pit\n");
 		pitCam = -1;
+		break;
+	case (GLUT_KEY_F1):
+		printf("Resetting...\n");
+		qcam.reset();
 		break;
 	}
 }
