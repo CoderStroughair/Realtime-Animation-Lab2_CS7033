@@ -13,7 +13,7 @@ using namespace std;
 						Mesh and Shader Variables
 ----------------------------------------------------------------------------*/
 Mesh monkeyhead_object, torch_object, wall_object, cube, bear_object, signReflect_object, signRefract_object, signNormal_object;
-Mesh gem_object, sphere_object, particle_object;
+Mesh gem_object, sphere_object, particle_object, plane_object;
 
 GLuint noTextureShaderID, textureShaderID, cubeMapTextureID, refractiveShaderID, cubeMapShaderID;
 GLuint testID, normalisedShaderID, reflectiveShaderID, multiTextureShaderID, mirrorShaderID, debugSkyboxID;
@@ -131,7 +131,7 @@ void init()
 	signNormal_object.init(SIGN_MESH, NORMAL_TEXTURE);
 	sphere_object.init(SPHERE_MESH);
 	gem_object.init(GEM_MESH);
-	particle_object.init(GEM_MESH);
+	plane_object.init(PLANE_MESH);
 }
 
 void display() 
@@ -140,8 +140,8 @@ void display()
 	mat4 view;
 	glViewport(0, 0, width, height);
 		
-	if(!qmode)
-		view = look_at(cam.getPosition(), cam.getPosition() + cam.getFront(), cam.getUp());
+	if (!qmode)
+		view = identity_mat4();
 	else
 		view = qcam.viewMat;
 	proj = perspective(60.0, (float)width / (float)height, 1, 1000.0);
@@ -181,33 +181,6 @@ void updateScene() {
 		qcam.roll += rolCam;
 		qcam.heading += yawCam;
 
-		//versor q = quat_from_axis_deg(qcam.yaw, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]);
-		//qcam.R = quat_to_mat4(normalise(q));
-
-		//qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
-		//qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
-		//qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
-
-		//q = quat_from_axis_deg(-qcam.pitch, qcam.right.v[0], qcam.right.v[1], qcam.right.v[2]) * q;
-		//qcam.R = quat_to_mat4(normalise(q));
-
-		//qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
-		//qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
-		//qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
-
-		//q = quat_from_axis_deg(qcam.roll, qcam.front.v[0], qcam.front.v[1], qcam.front.v[2]) * q;
-		//qcam.R = quat_to_mat4(normalise(q));
-
-		//qcam.front = qcam.R * vec4(0.0, 0.0, 1.0, 0.0);
-		//qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
-		//qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
-
-		//qcam.cam_pos = qcam.cam_pos + vec3(qcam.front) * frontCam;
-		//qcam.cam_pos = qcam.cam_pos + vec3(qcam.right) * sideCam;
-		//qcam.T = translate(identity_mat4(), vec3(qcam.cam_pos));
-
-		//qcam.viewMat = (qcam.R) * (qcam.T);
-
 		qcam.rotation = quat_from_axis_deg(yawCam, qcam.up.v[0], qcam.up.v[1], qcam.up.v[2]) * qcam.rotation;
 		qcam.R = quat_to_mat4(normalise(qcam.rotation));
 
@@ -229,9 +202,12 @@ void updateScene() {
 		qcam.right = qcam.R * vec4(1.0, 0.0, 0.0, 0.0);
 		qcam.up = qcam.R * vec4(0.0, 1.0, 0.0, 0.0);
 
+		if(frontCam)
+			cout << "";
+
 		qcam.cam_pos = qcam.cam_pos + vec3(qcam.front) * frontCam;
 		qcam.cam_pos = qcam.cam_pos + vec3(qcam.right) * sideCam;
-		qcam.T = translate(identity_mat4(), vec3(qcam.cam_pos));
+		qcam.T = translate(identity_mat4(), vec3(0.0, 0.0, -10.0));
 
 		qcam.viewMat = (qcam.R) * (qcam.T);
 
@@ -257,9 +233,7 @@ void updateScene() {
 		if (qmode)
 		{
 			string output = "QUAT_MODE: Front: [" + to_string(qcam.getFront().v[0]) + ", " + to_string(qcam.getFront().v[1]) + ", " + to_string(qcam.getFront().v[2]) + "]\n";
-			output += "Position: [" + to_string(qcam.getPosition().v[0]) + ", " + to_string(qcam.getPosition().v[1]) + ", " + to_string(qcam.getPosition().v[2]) + "]\n";
 			output += "Up: [" + to_string(qcam.getUp().v[0]) + ", " + to_string(qcam.getUp().v[1]) + ", " + to_string(qcam.getUp().v[2]) + "]\n";
-			output += "Object Position: [" + to_string(particle_object.position.v[0]) + ", " + to_string(particle_object.position.v[1]) + ", " + to_string(particle_object.position.v[2]) + "]\n";
 			output += "Pitch: " + to_string(qcam.pitch) + "\n";
 			output += "Yaw: " + to_string(qcam.yaw) + "\n";
 			output += "Roll: " + to_string(qcam.roll) + "\n";
@@ -268,17 +242,14 @@ void updateScene() {
 
 		else
 		{
-			string output = "EULER_MODE: Front: [" + to_string(cam.getFront().v[0]) + ", " + to_string(cam.getFront().v[1]) + ", " + to_string(cam.getFront().v[2]) + "]\n";
-			output += "Position: [" + to_string(cam.getPosition().v[0]) + ", " + to_string(cam.getPosition().v[1]) + ", " + to_string(cam.getPosition().v[2]) + "]\n";
-			output += "Up: [" + to_string(cam.getUp().v[0]) + ", " + to_string(cam.getUp().v[1]) + ", " + to_string(cam.getUp().v[2]) + "]\n";
-			output += "Object Position: [" + to_string(particle_object.position.v[0]) + ", " + to_string(particle_object.position.v[1]) + ", " + to_string(particle_object.position.v[2]) + "]\n";
+			string output = "EULER_MODE: \n";
 			output += "Pitch: " + to_string(cam.pitch) + "\n";
 			output += "Yaw: " + to_string(cam.yaw) + "\n";
 			output += "Roll: " + to_string(cam.roll) + "\n";
 			update_text(textID, output.c_str());
 		}
 
-		particle_object.moveObject(vec3(0.0, 0.0, 0.0), vec3(objPit*10.0f, objYaw*10.0f, objRol*10.0f), delta);
+		plane_object.moveObject(vec3(0.0, 0.0, 0.0), vec3(objPit*1.0f, objYaw*1.0f, objRol*1.0f), delta);
 
 /**--------------------QuatCam Stuff--------------------**/
 		//Translation
@@ -339,7 +310,7 @@ void keypress(unsigned char key, int x, int y)
 		objPit = -1;
 	}
 
-	if ((key == 't') || (key == 'T'))
+	else if ((key == 't') || (key == 'T'))
 	{
 		objYaw = 1;
 	}
@@ -348,7 +319,7 @@ void keypress(unsigned char key, int x, int y)
 		objYaw = -1;
 	}
 
-	if ((key == 'y') || (key == 'Y'))
+	else if ((key == 'y') || (key == 'Y'))
 	{
 		objRol = 1;
 	}
@@ -500,6 +471,11 @@ void drawloop(mat4 view, mat4 proj, GLuint framebuffer)
 
 	mat4 model;
 	model = identity_mat4();
+	if (!qmode)
+	{
+		view = cam.getFreeView();
+
+	}
 	// light properties
 	vec3 Ls = vec3(1.0f, 1.0f, 1.0f);	//Specular Reflected Light
 	vec3 Ld = vec3(0.99f, 0.99f, 0.99f);	//Diffuse Surface Reflectance
@@ -514,5 +490,5 @@ void drawloop(mat4 view, mat4 proj, GLuint framebuffer)
 	float specular_exponent = 0.5f; //specular exponent - size of the specular elements
 
 	drawCubeMap(cubeMapShaderID, cube.tex, view, proj, identity_mat4(), Ld, La, cam, cube, GL_TRIANGLES);
-	drawObject(noTextureShaderID, view, proj, identity_mat4(), light, Ls, La, Ld, Ks, Ka, WHITE, specular_exponent, cam, particle_object, coneAngle, coneDirection, GL_TRIANGLES);
+	drawObject(noTextureShaderID, view, proj, identity_mat4(), light, Ls, La, Ld, Ks, Ka, WHITE, specular_exponent, cam, plane_object, coneAngle, coneDirection, GL_QUADS);
 }

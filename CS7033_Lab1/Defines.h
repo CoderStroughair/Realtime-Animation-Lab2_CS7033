@@ -56,7 +56,7 @@
 #define SIGN_MESH		"../Meshes/sign.obj"
 #define BUDDHA_MESH		"../Meshes/buddha.dae"
 #define PARTICLE_MESH	"../Meshes/cube.obj"
-
+#define PLANE_MESH		"../Meshes/plane.dae"
 
 #define BEAR_TEXTURE	"../Textures/bear.tga"
 #define BEAR_TEXTURE2	"../Textures/bear2.tga"

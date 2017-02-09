@@ -39,9 +39,9 @@ u:\animation labs\cs7033_lab1\cs7033_lab1\utilities.h(248): warning C4018: '<': 
 u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(102): warning C4244: 'argument': conversion from 'const float' to 'int', possible loss of data
 u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(141): warning C4244: 'argument': conversion from 'const float' to 'GLsizei', possible loss of data
 u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(148): warning C4244: 'argument': conversion from 'const float' to 'GLsizei', possible loss of data
-u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(287): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(459): warning C4244: 'argument': conversion from 'const float' to 'int', possible loss of data
-u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(465): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(486): warning C4305: 'argument': truncation from 'double' to 'float'
+u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(258): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(430): warning C4244: 'argument': conversion from 'const float' to 'int', possible loss of data
+u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(436): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+u:\animation labs\cs7033_lab1\cs7033_lab1\main_mine.cpp(457): warning C4305: 'argument': truncation from 'double' to 'float'
   CS7033_Lab1.vcxproj -> U:\Animation Labs\CS7033_Lab1\Debug\CS7033_Lab1.exe
   CS7033_Lab1.vcxproj -> U:\Animation Labs\CS7033_Lab1\Debug\CS7033_Lab1.pdb (Full PDB)
