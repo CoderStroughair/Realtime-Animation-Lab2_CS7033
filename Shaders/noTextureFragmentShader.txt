@@ -3,7 +3,6 @@
 in vec3 position_eye;
 in vec3 normal_eye;
 in vec3 light_position_eye; 
-in vec3 camPos;
 
 //************//
 //OBJECT COLOR//
@@ -12,6 +11,7 @@ uniform vec3 Ks;
 uniform vec3 Kd;
 uniform vec3 Ka;
 uniform float specular_exponent;
+uniform vec3 camPos;
 
 //***********//
 //LIGHT COLOR//
