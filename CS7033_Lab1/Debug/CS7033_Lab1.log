@@ -1,4 +1,5 @@
-﻿  main_mine.cpp
+﻿cl : Command line warning D9028: minimal rebuild failure, reverting to normal build
+  main_mine.cpp
 u:\animation labs\cs7033_lab1\cs7033_lab1\antons_maths_funcs.h(398): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
 u:\animation labs\cs7033_lab1\cs7033_lab1\antons_maths_funcs.h(449): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
 u:\animation labs\cs7033_lab1\cs7033_lab1\antons_maths_funcs.h(453): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data

@@ -131,7 +131,7 @@ void init()
 	signNormal_object.init(SIGN_MESH, NORMAL_TEXTURE);
 	sphere_object.init(SPHERE_MESH);
 	gem_object.init(GEM_MESH);
-	plane_object.init(PLANE_MESH);
+	plane_object.init(TORCH_MESH);
 }
 
 void display() 
@@ -477,7 +477,7 @@ void drawloop(mat4 view, mat4 proj, GLuint framebuffer)
 
 	}
 	// light properties
-	vec3 Ls = vec3(1.0f, 1.0f, 1.0f);	//Specular Reflected Light
+	vec3 Ls = vec3(0.2f, 0.2f, 0.2f);	//Specular Reflected Light
 	vec3 Ld = vec3(0.99f, 0.99f, 0.99f);	//Diffuse Surface Reflectance
 	vec3 La = vec3(1.0f, 1.0f, 1.0f);	//Ambient Reflected Light
 	vec3 light = vec3(5 * sin(rotateLight), 10, -5.0f*cos(rotateLight));//light source location
@@ -487,8 +487,9 @@ void drawloop(mat4 view, mat4 proj, GLuint framebuffer)
 	vec3 Ks = vec3(0.1f, 0.1f, 0.1f); // specular reflectance
 	vec3 Kd = BROWN;
 	vec3 Ka = vec3(0.05f, 0.05f, 0.05f); // ambient reflectance
-	float specular_exponent = 0.5f; //specular exponent - size of the specular elements
+	float specular_exponent = 0.0000001f; //specular exponent - size of the specular elements
 
 	drawCubeMap(cubeMapShaderID, cube.tex, view, proj, identity_mat4(), Ld, La, cam, cube, GL_TRIANGLES);
-	drawObject(noTextureShaderID, view, proj, identity_mat4(), light, Ls, La, Ld, Ks, Ka, WHITE, specular_exponent, cam, plane_object, coneAngle, coneDirection, GL_QUADS);
+	model = scale(model, vec3(0.5, 0.5, 0.5));
+	drawObject(noTextureShaderID, view, proj, model, light, Ls, La, Ld, Ks, Ka, BLUE, specular_exponent, cam, plane_object, coneAngle, coneDirection, GL_QUADS);
 }
